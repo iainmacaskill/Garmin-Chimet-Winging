@@ -79,8 +79,22 @@ far into the harbours, which is itself the correct answer.
    or tells you it's neaps if nothing qualifies in the next 3 days.
 4. Wind over 20 kn downgrades a GO to MARGINAL (chop).
 
+## 7-day planner
+
+Below the live cards there's a day-by-day table covering the week ahead:
+
+- **Wing columns** — for each spot, the longest daylight run of rideable hours
+  (≥ 12 kn, right direction, under the 35 kn cap), shown as e.g.
+  `12–19h · 18kn SSW`. Green = at least 2 hours ≥ 15 kn, amber = marginal,
+  grey = the day's peak wind for reference. Daylight bounds come from
+  Open-Meteo's sunrise/sunset for that day.
+- **Fareham column** — every predicted high water ≥ 3.8 m that day with its
+  time and height (🌙 marks high waters outside daylight), or `HW 3.6m — low`
+  on neap days so you can see how close it was.
+- **⭐ on the day** — a jackpot day: winnable wing wind *and* a Foildrive-able
+  tide on the same day.
+
 ## Ideas for later
 
 - Push notification / email when a Fareham window coincides with light wind.
-- 7-day planner view (which days have both wind and a big tide).
 - Store your session log against the conditions that day.

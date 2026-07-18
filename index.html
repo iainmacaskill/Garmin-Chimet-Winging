@@ -48,6 +48,21 @@
   footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   footer a{color:var(--accent)}
   .err{color:var(--nogo);font-size:12px}
+  #planner{margin-top:26px}
+  #planner h2{font-size:18px;margin:0 0 10px}
+  .plwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+  table.plan{border-collapse:collapse;width:100%;min-width:760px;font-size:13px}
+  table.plan th,table.plan td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  table.plan th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  table.plan tr:last-child td{border-bottom:0}
+  td.day{white-space:nowrap;font-weight:700}
+  td.day small{display:block;font-weight:400;color:var(--muted)}
+  .chip{display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;white-space:nowrap;margin:1px 0}
+  .chip.go{background:color-mix(in srgb,var(--go) 18%,transparent);color:var(--go);border:1px solid var(--go)}
+  .chip.marginal{background:color-mix(in srgb,var(--marginal) 16%,transparent);color:var(--marginal);border:1px solid var(--marginal)}
+  .chip.no{color:var(--muted)}
+  .chip .moon{opacity:.8}
+  tr.jackpot td.day::before{content:"⭐ "}
 </style>
 </head>
 <body>
@@ -58,6 +73,7 @@
 </header>
 <div id="best">Checking all spots…</div>
 <div class="grid" id="grid"></div>
+<section id="planner"></section>
 <footer>
   Wind: live meters from the <a href="https://www.bramblemet.co.uk">Solentmet network</a> where reachable, otherwise the Open-Meteo model.
   Tide predictions &amp; swell: <a href="https://open-meteo.com">Open-Meteo</a> marine model (tide heights are model estimates converted to approximate Chart Datum — sanity-check against official tide tables).
@@ -169,11 +185,12 @@ async function tryLiveMeter(meter) {
 async function fetchModelWind(spot) {
   const u = `https://api.open-meteo.com/v1/forecast?latitude=${spot.lat}&longitude=${spot.lon}` +
     `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m` +
-    `&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timezone=Europe%2FLondon&forecast_days=2`;
+    `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&daily=sunrise,sunset` +
+    `&wind_speed_unit=kn&timezone=Europe%2FLondon&forecast_days=7`;
   const j = await fetchJSON(u);
   return {
     speed: j.current.wind_speed_10m, gust: j.current.wind_gusts_10m, dir: j.current.wind_direction_10m,
-    temp: j.current.temperature_2m, hourly: j.hourly, source: "Open-Meteo model", live: false
+    temp: j.current.temperature_2m, hourly: j.hourly, daily: j.daily, source: "Open-Meteo model", live: false
   };
 }
 
@@ -182,7 +199,7 @@ async function fetchMarine(spot) {
   const m = spot.marine;
   const u = `https://marine-api.open-meteo.com/v1/marine?latitude=${m.lat}&longitude=${m.lon}` +
     `&hourly=wave_height,wave_period,swell_wave_height,swell_wave_period,sea_level_height_msl` +
-    `&current=wave_height,sea_level_height_msl&timezone=Europe%2FLondon&forecast_days=3`;
+    `&current=wave_height,sea_level_height_msl&timezone=Europe%2FLondon&forecast_days=7`;
   try { return await fetchJSON(u); } catch (e) { return null; }
 }
 
@@ -307,7 +324,7 @@ function scoreFoildrive(spot, wind, tide, ea) {
     reasons.push(`Next big-enough HW: ${next.cd.toFixed(1)} m at ${fmtT(new Date(next.ms).toISOString())}`);
     window = { open: false, from: next.ms - fd.windowHrs*3600e3, to: next.ms + fd.windowHrs*3600e3, hw: next };
   } else {
-    reasons.push(`No HW ≥ ${fd.minHW} m in the next 3 days — neaps, sit tight`);
+    reasons.push(`No HW ≥ ${fd.minHW} m in the next 7 days — neaps, sit tight`);
   }
   if (nowCd != null) reasons.push(`Height now ≈ ${nowCd.toFixed(1)} m (need HW ≥ ${fd.minHW} m)`);
   if (wind.speed != null && wind.speed > fd.maxWind) { reasons.push(`${KN(wind.speed)} kn — choppy for Foildrive`); if (status === "go") { status = "marginal"; score = 60; } }
@@ -354,6 +371,77 @@ function renderCard(spot, wind, marine, tide, verdict, ea) {
   </div>`;
 }
 
+/* --- 7-day planner --- */
+const localDate = ms => new Date(ms).toLocaleDateString("en-CA");           // YYYY-MM-DD, local tz
+const hm = ms => new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+function wingDayCell(spot, wind, dateStr) {
+  const h = wind.hourly, th = CONFIG.wind;
+  if (!h || !h.time) return { status: "no", html: "–" };
+  let sr = 7, ss = 21;                                                      // daylight fallback
+  if (wind.daily && wind.daily.time) {
+    const di = wind.daily.time.indexOf(dateStr);
+    if (di >= 0 && wind.daily.sunrise[di]) { sr = +wind.daily.sunrise[di].slice(11, 13); ss = +wind.daily.sunset[di].slice(11, 13) + 1; }
+  }
+  const idx = [];
+  h.time.forEach((t, i) => { if (t.startsWith(dateStr)) { const hr = +t.slice(11, 13); if (hr >= sr && hr <= ss) idx.push(i); } });
+  if (!idx.length) return { status: "no", html: "–" };
+  const spd = i => h.wind_speed_10m[i], dir = i => h.wind_direction_10m[i];
+  const ok = i => spd(i) != null && spd(i) >= th.marginal && spd(i) <= th.tooMuch &&
+                  (dir(i) == null || !spot.goodDirs || inSector(dir(i), spot.goodDirs));
+  // longest consecutive rideable run within daylight
+  let best = [], run = [];
+  for (const i of idx) { if (ok(i)) { run.push(i); if (run.length > best.length) best = run.slice(); } else run = []; }
+  if (best.length < 2) {
+    const iMax = idx.reduce((a, b) => (spd(b) ?? -1) > (spd(a) ?? -1) ? b : a);
+    return { status: "no", html: `<span class="chip no">${KN(spd(iMax))}kn ${cardinal(dir(iMax))}</span>` };
+  }
+  const iMax = best.reduce((a, b) => spd(b) > spd(a) ? b : a);
+  const goodHrs = best.filter(i => spd(i) >= th.good).length;
+  const status = goodHrs >= 2 ? "go" : "marginal";
+  const from = +h.time[best[0]].slice(11, 13), to = +h.time[best[best.length - 1]].slice(11, 13) + 1;
+  return { status, html: `<span class="chip ${status}">${from}–${to}h · ${KN(spd(iMax))}kn ${cardinal(dir(iMax))}</span>` };
+}
+
+function farehamDayCell(spot, tide, dateStr) {
+  if (!tide || !tide.highs.length) return { status: "no", html: "–" };
+  const fd = spot.foildrive;
+  const dayHWs = tide.highs.filter(p => localDate(p.ms) === dateStr);
+  if (!dayHWs.length) return { status: "no", html: "–" };
+  const big = dayHWs.filter(p => p.cd >= fd.minHW);
+  if (!big.length) {
+    const max = dayHWs.reduce((a, b) => b.cd > a.cd ? b : a);
+    return { status: "no", html: `<span class="chip no">HW ${max.cd.toFixed(1)}m — low</span>` };
+  }
+  const html = big.map(p => {
+    const hr = new Date(p.ms).getHours();
+    const night = hr < 6 || hr >= 21 ? ' <span class="moon">🌙</span>' : "";
+    return `<span class="chip go">HW ${p.cd.toFixed(1)}m ${hm(p.ms)}${night}</span>`;
+  }).join("<br>");
+  return { status: "go", html };
+}
+
+function renderPlanner(results) {
+  const wing = results.filter(r => r.spot.activity === "wing");
+  const fdr = results.find(r => r.spot.activity === "foildrive");
+  const base = wing.find(r => r.wind.hourly && r.wind.hourly.time);
+  if (!base) { $("#planner").innerHTML = ""; return; }
+  const days = [...new Set(base.wind.hourly.time.map(t => t.slice(0, 10)))].slice(0, 7);
+  const head = `<tr><th>Day</th>${wing.map(r => `<th>${r.spot.name}</th>`).join("")}<th>Fareham 🛥️</th></tr>`;
+  const rows = days.map(d => {
+    const cells = wing.map(r => wingDayCell(r.spot, r.wind, d));
+    const fdCell = fdr ? farehamDayCell(fdr.spot, fdr.tide, d) : { status: "no", html: "–" };
+    const jackpot = fdCell.status === "go" && cells.some(c => c.status === "go");
+    const label = new Date(d + "T12:00").toLocaleDateString("en-GB", { weekday: "short" });
+    const sub = new Date(d + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    return `<tr${jackpot ? ' class="jackpot"' : ""}><td class="day">${label}<small>${sub}</small></td>` +
+           `${cells.map(c => `<td>${c.html}</td>`).join("")}<td>${fdCell.html}</td></tr>`;
+  }).join("");
+  $("#planner").innerHTML = `<h2>📅 7-day planner</h2>
+    <div class="plwrap"><table class="plan">${head}${rows}</table></div>
+    <div class="meta" style="margin-top:6px">Daylight hours only for wing windows · ⭐ = wing + Foildrive tide on the same day · 🌙 = high water outside daylight</div>`;
+}
+
 async function loadSpot(spot) {
   const [model, marine] = await Promise.all([
     fetchModelWind(spot).catch(() => ({ speed: null, gust: null, dir: null, source: "unavailable", live: false })),
@@ -381,6 +469,7 @@ async function loadAll() {
   try {
     const results = await Promise.all(CONFIG.spots.map(loadSpot));
     $("#grid").innerHTML = results.map(r => renderCard(r.spot, r.wind, r.marine, r.tide, r.verdict, r.ea)).join("");
+    renderPlanner(results);
     const ranked = results.filter(r => r.verdict.status === "go").sort((a, b) => b.verdict.score - a.verdict.score);
     if (ranked.length) {
       $("#best").innerHTML = `🏆 Best bet right now: <b>${ranked[0].spot.name}</b>` +
