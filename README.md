@@ -9,6 +9,7 @@ spots and tells you where (and when) to ride:
 | Emsworth | Wing | ≥ 15 kn from SE–SW; best near HW (shallow harbour top) |
 | Hayling Island | Wing | ≥ 15 kn from ESE–W |
 | West Wittering | Wing | ≥ 15 kn from SE–W |
+| Hurst Castle / Milford | Wing | ≥ 15 kn from S–W (the SW funnels through the Needles Channel) |
 | **Fareham Creek** | **Foildrive** | **High water ≥ 3.8 m (Chart Datum), within ±1.5 h of HW** |
 
 Everything below 12 kn is a no-go for the wing, 12–15 kn is flagged marginal
@@ -40,6 +41,12 @@ meters" this tool is built around:
 - [Cambermet](https://www.cambermet.co.uk) — mid Chichester Harbour (covers Hayling)
 - [Chimet](https://www.chimet.co.uk) — Chichester Bar (covers West Wittering and the Hayling seafront)
 - [Hill Head Sailing Club weather station](https://www.hillheadsc.org.uk/sail/weather-station-1/)
+
+Plus, at the western end, two OceanWise WeatherFile stations (JSON feeds —
+the meter reader handles both formats):
+
+- [Hurst Castle](https://weatherfile.com/location?loc_id=GBR00002) — on the castle itself
+- [Lymington Starting Platform](https://weatherfile.com/location?loc_id=GBR00001)
 
 The app attempts to read each station's text data feed directly from your
 browser. If a station blocks cross-origin requests (or a feed path changes),
@@ -106,8 +113,11 @@ watcher looks for the full signature on the **live meters**:
    for the same hour (that delta is what makes it a sea breeze, not a front),
 4. **Sun on the land** — cloud cover under 70%.
 
-It pings twice, once each per day:
+It pings (once each per day):
 
+- **🌬️ "SW filling in down west"** — ≥ 15 kn S–W at Hurst Castle while the
+  main spots are still light. A building SW'ly shows at the Needles Channel
+  first and usually spreads east — this is your earliest heads-up.
 - **🌤️ "Sea breeze building"** — onshore, ≥ 12 kn and climbing. Load the van.
 - **🚨 "IT'S HAPPENING"** — ≥ 17 kn and still building. Go.
 

@@ -141,6 +141,20 @@ const CONFIG = {
       datumOffset: 2.8
     },
     {
+      id: "hurst", name: "Hurst Castle / Milford", activity: "wing",
+      lat: 50.707, lon: -1.550, marine: { lat: 50.695, lon: -1.555 },
+      goodDirs: [160, 290],         // S through W — the SW funnels through the Needles Channel
+      offshoreNote: "N–NE is offshore over the spit",
+      meters: [
+        { label: "Hurst Castle (WeatherFile)", site: "https://weatherfile.com/location?loc_id=GBR00002",
+          feeds: [{ url: "https://weatherfile.com/V03/loc/GBR00002/latest", unit: "kn" }] },
+        { label: "Lymington Starting Platform", site: "https://weatherfile.com/location?loc_id=GBR00001",
+          feeds: [{ url: "https://weatherfile.com/V03/loc/GBR00001/latest", unit: "kn" }] }
+      ],
+      datumOffset: 1.9,             // western Solent tides are smaller (Yarmouth MSL ≈ 1.9 m above CD)
+      tideNote: "Strong ebb through the Narrows against a SW'ly kicks up serious chop"
+    },
+    {
       id: "fareham", name: "Fareham Creek", activity: "foildrive",
       lat: 50.845, lon: -1.166, marine: { lat: 50.79, lon: -1.11 },
       goodDirs: null,               // motor-assisted: direction not critical
@@ -162,25 +176,48 @@ const inSector = (deg, [a, b]) => a <= b ? deg >= a && deg <= b : deg >= a || de
 
 async function fetchJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return r.json(); }
 
-/* --- Live meter feeds (Solentmet-style CSV: header row + data rows) --- */
+/* --- Live meter feeds: Solentmet-style CSV (m/s) or WeatherFile-style JSON --- */
+function parseCSVMeter(text) {
+  const rows = text.trim().split(/\r?\n/).map(l => l.split(",").map(c => c.trim()));
+  if (rows.length < 2) return null;
+  const header = rows[0].map(h => h.toUpperCase());
+  const last = rows[rows.length - 1];
+  const col = names => { const i = header.findIndex(h => names.some(n => h.includes(n))); return i >= 0 ? parseFloat(last[i]) : null; };
+  const speedMs = col(["WSPD", "WIND SPEED", "SPEED"]);
+  const dir = col(["WD", "DIRN", "DIRECTION"]);
+  const gustMs = col(["GST", "GUST"]);
+  if (speedMs == null || isNaN(speedMs)) return null;
+  const toKn = v => v == null || isNaN(v) ? null : v * 1.94384;   // Solentmet reports m/s
+  return { speed: toKn(speedMs), gust: toKn(gustMs), dir: isNaN(dir) ? null : dir };
+}
+
+function parseJSONMeter(text, unit) {
+  let j; try { j = JSON.parse(text); } catch { return null; }
+  const flat = {};
+  (function walk(o) {
+    for (const k in o) {
+      if (o[k] && typeof o[k] === "object") walk(o[k]);
+      else if (typeof o[k] === "number" || (typeof o[k] === "string" && o[k] !== "" && !isNaN(o[k]))) flat[k.toLowerCase()] = +o[k];
+    }
+  })(j);
+  const pick = names => { for (const n of names) if (flat[n] != null) return flat[n]; return null; };
+  const speed = pick(["wsa", "ws_avg", "wind_speed", "windspeed", "wspd", "ws"]);   // WeatherFile: wsa/wsh/wda
+  const gust = pick(["wsh", "wind_gust", "gust", "wga", "gst"]);
+  const dir = pick(["wda", "wd_avg", "wind_direction", "winddir", "wdir", "wd"]);
+  if (speed == null) return null;
+  const f = unit === "ms" ? 1.94384 : 1;
+  return { speed: speed * f, gust: gust == null ? null : gust * f, dir };
+}
+
 async function tryLiveMeter(meter) {
-  for (const url of meter.feeds) {
+  for (const feed of meter.feeds) {
+    const url = feed.url || feed;
     try {
       const r = await fetch(url, { mode: "cors" });
       if (!r.ok) continue;
       const text = await r.text();
-      const rows = text.trim().split(/\r?\n/).map(l => l.split(",").map(c => c.trim()));
-      if (rows.length < 2) continue;
-      const header = rows[0].map(h => h.toUpperCase());
-      const last = rows[rows.length - 1];
-      const col = names => { const i = header.findIndex(h => names.some(n => h.includes(n))); return i >= 0 ? parseFloat(last[i]) : null; };
-      const speedMs = col(["WSPD", "WIND SPEED", "SPEED"]);
-      const dir = col(["WD", "DIRN", "DIRECTION"]);
-      const gustMs = col(["GST", "GUST"]);
-      if (speedMs == null || isNaN(speedMs)) continue;
-      // Solentmet feeds report m/s; if the value looks like it's already knots (>40 in a gale is possible, so use header hint only)
-      const toKn = v => v == null || isNaN(v) ? null : v * 1.94384;
-      return { speed: toKn(speedMs), gust: toKn(gustMs), dir: isNaN(dir) ? null : dir, source: meter.label, site: meter.site, live: true };
+      const parsed = text.trim().startsWith("{") ? parseJSONMeter(text, feed.unit || "kn") : parseCSVMeter(text);
+      if (parsed) return { ...parsed, source: meter.label, site: meter.site, live: true };
     } catch (e) { /* CORS or network — fall through */ }
   }
   return null;

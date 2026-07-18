@@ -23,6 +23,15 @@ export const CONFIG = {
     { name: "Bramblemet", feeds: ["https://www.bramblemet.co.uk/bramble.txt", "https://www.bramblemet.co.uk/data.txt"] },
     { name: "Emsmet", feeds: ["https://www.emsmet.co.uk/emsworth.txt", "https://www.emsmet.co.uk/data.txt"] },
   ],
+  // Hurst Castle sits at the Needles Channel — a building SW'ly shows here
+  // first, then spreads east to the main spots. Used as an early-warning ping.
+  westStation: {
+    name: "Hurst Castle",
+    feeds: [{ url: "https://weatherfile.com/V03/loc/GBR00002/latest", unit: "kn" },
+            { url: "https://weatherfile.com/V03/loc/GBR00001/latest", unit: "kn" }],
+    sector: [180, 270],                  // S–W
+    minKn: 15,                           // blowing properly at Hurst...
+  },
   model: { lat: 50.78, lon: -1.0 },        // mid-area reference point for "what was forecast"
   onshore: [100, 260],                     // ESE through S to WSW = sea breeze sector
   buildingMin: 12,                         // kn — "it's forming" floor
@@ -50,23 +59,53 @@ export function londonNow(date = new Date()) {
 }
 
 /* --- data sources --- */
+export function parseCSVMeter(text) {
+  const rows = text.trim().split(/\r?\n/).map(l => l.split(",").map(c => c.trim()));
+  if (rows.length < 2) return null;
+  const header = rows[0].map(h => h.toUpperCase());
+  const last = rows[rows.length - 1];
+  const col = names => { const i = header.findIndex(h => names.some(n => h.includes(n))); return i >= 0 ? parseFloat(last[i]) : NaN; };
+  const spdMs = col(["WSPD", "WIND SPEED", "SPEED"]);
+  const dir = col(["WD", "DIRN", "DIRECTION"]);
+  if (isNaN(spdMs)) return null;
+  return { kn: spdMs * 1.94384, dir: isNaN(dir) ? null : dir };   // Solentmet reports m/s
+}
+
+export function parseJSONMeter(text, unit = "kn") {
+  let j; try { j = JSON.parse(text); } catch { return null; }
+  const flat = {};
+  (function walk(o) {
+    for (const k in o) {
+      if (o[k] && typeof o[k] === "object") walk(o[k]);
+      else if (typeof o[k] === "number" || (typeof o[k] === "string" && o[k] !== "" && !isNaN(o[k]))) flat[k.toLowerCase()] = +o[k];
+    }
+  })(j);
+  const pick = names => { for (const n of names) if (flat[n] != null) return flat[n]; return null; };
+  const speed = pick(["wsa", "ws_avg", "wind_speed", "windspeed", "wspd", "ws"]);   // WeatherFile: wsa/wsh/wda
+  const dir = pick(["wda", "wd_avg", "wind_direction", "winddir", "wdir", "wd"]);
+  if (speed == null) return null;
+  const f = unit === "ms" ? 1.94384 : 1;
+  return { kn: speed * f, dir };
+}
+
+export async function readStation(st) {
+  for (const feed of st.feeds) {
+    const url = feed.url || feed;
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) continue;
+      const text = await r.text();
+      const parsed = text.trim().startsWith("{") ? parseJSONMeter(text, feed.unit) : parseCSVMeter(text);
+      if (parsed) return { ...parsed, station: st.name };
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
 export async function readMeter(cfg = CONFIG) {
   for (const st of cfg.stations) {
-    for (const url of st.feeds) {
-      try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        if (!r.ok) continue;
-        const rows = (await r.text()).trim().split(/\r?\n/).map(l => l.split(",").map(c => c.trim()));
-        if (rows.length < 2) continue;
-        const header = rows[0].map(h => h.toUpperCase());
-        const last = rows[rows.length - 1];
-        const col = names => { const i = header.findIndex(h => names.some(n => h.includes(n))); return i >= 0 ? parseFloat(last[i]) : NaN; };
-        const spdMs = col(["WSPD", "WIND SPEED", "SPEED"]);
-        const dir = col(["WD", "DIRN", "DIRECTION"]);
-        if (isNaN(spdMs)) continue;
-        return { kn: spdMs * 1.94384, dir: isNaN(dir) ? null : dir, station: st.name };
-      } catch { /* try next */ }
-    }
+    const obs = await readStation(st);
+    if (obs) return obs;
   }
   return null;
 }
@@ -152,6 +191,17 @@ async function main() {
 
   const verdict = detect(obs, model, state.history, state, now, cfg);
   console.log(`phase=${verdict.phase} | ${verdict.reasons.join(" | ")}`);
+
+  // Early warning: a SW'ly blowing at Hurst Castle before it reaches the
+  // main spots usually spreads east within the hour.
+  if (verdict.phase === "none" && cfg.westStation && obs.kn < cfg.buildingMin && state.sentWest !== t.dateKey) {
+    const west = await readStation(cfg.westStation);
+    if (west && west.dir != null && inSector(west.dir, cfg.westStation.sector) && west.kn >= cfg.westStation.minKn) {
+      await notify(cfg.ntfyTopic, "🌬️ SW filling in down west",
+        `${KN(west.kn)} kn ${cardinal(west.dir)} at ${west.station} while it's still ${KN(obs.kn)} kn at ${obs.station} — usually spreads east. Watch the meters.`);
+      state.sentWest = t.dateKey;
+    }
+  }
 
   if (verdict.phase === "happening") {
     await notify(cfg.ntfyTopic, "🚨 IT'S HAPPENING — sea breeze is in",
