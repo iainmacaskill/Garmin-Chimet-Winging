@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solent Wing &amp; Foildrive Conditions</title>
+<style>
+  :root{
+    --bg:#0d1420; --panel:#151f30; --panel2:#1b2942; --ink:#e8eef7; --muted:#8fa1ba;
+    --go:#2fbf71; --marginal:#e8b93c; --nogo:#e05c5c; --accent:#4da3ff; --line:#26385a;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f2f5f9; --panel:#ffffff; --panel2:#eef3fa; --ink:#17222f; --muted:#5c6b7f; --line:#d7e0ec; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);padding:16px}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px}
+  h1{font-size:22px;margin:0}
+  #updated{color:var(--muted);font-size:13px}
+  #refresh{margin-left:auto;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer}
+  #refresh:disabled{opacity:.5;cursor:wait}
+  #best{margin:10px 0 16px;padding:12px 16px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:15px}
+  #best b{color:var(--go)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .card h2{margin:0;font-size:17px;display:flex;align-items:center;gap:8px}
+  .tag{font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .pill{margin-left:auto;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff}
+  .pill.go{background:var(--go)} .pill.marginal{background:var(--marginal);color:#3a3000} .pill.nogo{background:var(--nogo)} .pill.na{background:var(--muted)}
+  .windrow{display:flex;align-items:center;gap:14px}
+  .kn{font-size:38px;font-weight:800;line-height:1}
+  .kn small{font-size:14px;font-weight:600;color:var(--muted)}
+  .gust{color:var(--muted);font-size:13px}
+  .dir{display:flex;flex-direction:column;align-items:center;color:var(--muted);font-size:12px}
+  .arrow{font-size:26px;line-height:1;display:inline-block;color:var(--accent)}
+  .src{font-size:11px;color:var(--muted)}
+  .src .live{color:var(--go);font-weight:700}
+  .meta{font-size:13px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:600}
+  .reasons{margin:0;padding-left:18px;font-size:13px;color:var(--muted)}
+  .reasons li.bad{color:var(--nogo)} .reasons li.good{color:var(--go)}
+  svg.tide{width:100%;height:64px;display:block}
+  .links{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;margin-top:auto;padding-top:6px;border-top:1px solid var(--line)}
+  .links a{color:var(--accent);text-decoration:none}
+  .links a:hover{text-decoration:underline}
+  .window{font-size:13px;padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}
+  .window.open{border-color:var(--go)}
+  footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
+  footer a{color:var(--accent)}
+  .err{color:var(--nogo);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🪁 Solent Wing &amp; Foildrive Conditions</h1>
+  <span id="updated">loading…</span>
+  <button id="refresh" onclick="loadAll()">Refresh</button>
+</header>
+<div id="best">Checking all spots…</div>
+<div class="grid" id="grid"></div>
+<footer>
+  Wind: live meters from the <a href="https://www.bramblemet.co.uk">Solentmet network</a> where reachable, otherwise the Open-Meteo model.
+  Tide predictions &amp; swell: <a href="https://open-meteo.com">Open-Meteo</a> marine model (tide heights are model estimates converted to approximate Chart Datum — sanity-check against official tide tables).
+  Live observed tide at Portsmouth: <a href="https://environment.data.gov.uk/flood-monitoring/doc/tidegauge">Environment Agency Tide Gauge API</a>.
+  Wing thresholds and direction sectors are editable in the CONFIG block at the top of this file.
+</footer>
+
+<script>
+/* =====================  CONFIG — tweak me  ===================== */
+const CONFIG = {
+  refreshMinutes: 10,
+  wind: { marginal: 12, good: 15, strong: 28, tooMuch: 35 },  // knots (wing spots)
+  spots: [
+    {
+      id: "meon", name: "Meon / Hill Head", activity: "wing",
+      lat: 50.818, lon: -1.244, marine: { lat: 50.79, lon: -1.24 },
+      goodDirs: [90, 250],          // E through S to WSW is on/cross-shore
+      offshoreNote: "N–NE is offshore here",
+      meters: [
+        { label: "Bramblemet (Bramble Bank)", site: "https://www.bramblemet.co.uk",
+          feeds: ["https://www.bramblemet.co.uk/bramble.txt", "https://www.bramblemet.co.uk/data.txt"] },
+        { label: "Hill Head SC station", site: "https://www.hillheadsc.org.uk/sail/weather-station-1/", feeds: [] }
+      ],
+      datumOffset: 2.9
+    },
+    {
+      id: "emsworth", name: "Emsworth", activity: "wing",
+      lat: 50.842, lon: -0.938, marine: { lat: 50.79, lon: -0.93 },
+      goodDirs: [120, 240],
+      offshoreNote: "Northerlies are offshore/gusty off the town",
+      meters: [
+        { label: "Emsmet (Emsworth)", site: "https://www.emsmet.co.uk",
+          feeds: ["https://www.emsmet.co.uk/emsworth.txt", "https://www.emsmet.co.uk/emsmet.txt", "https://www.emsmet.co.uk/data.txt"] }
+      ],
+      datumOffset: 2.8,
+      tideNote: "Shallow harbour top — most rideable either side of HW"
+    },
+    {
+      id: "hayling", name: "Hayling Island", activity: "wing",
+      lat: 50.780, lon: -0.980, marine: { lat: 50.76, lon: -0.98 },
+      goodDirs: [100, 260],
+      offshoreNote: "N is offshore on the seafront",
+      meters: [
+        { label: "Cambermet (Chichester Hbr)", site: "https://www.cambermet.co.uk",
+          feeds: ["https://www.cambermet.co.uk/camber.txt", "https://www.cambermet.co.uk/data.txt"] },
+        { label: "Chimet (Chichester Bar)", site: "https://www.chimet.co.uk",
+          feeds: ["https://www.chimet.co.uk/chimet.txt", "https://www.chimet.co.uk/data.txt"] }
+      ],
+      datumOffset: 2.8
+    },
+    {
+      id: "wittering", name: "West Wittering", activity: "wing",
+      lat: 50.778, lon: -0.910, marine: { lat: 50.76, lon: -0.91 },
+      goodDirs: [120, 280],
+      offshoreNote: "NE is offshore",
+      meters: [
+        { label: "Chimet (Chichester Bar)", site: "https://www.chimet.co.uk",
+          feeds: ["https://www.chimet.co.uk/chimet.txt", "https://www.chimet.co.uk/data.txt"] }
+      ],
+      datumOffset: 2.8
+    },
+    {
+      id: "fareham", name: "Fareham Creek", activity: "foildrive",
+      lat: 50.845, lon: -1.166, marine: { lat: 50.79, lon: -1.11 },
+      goodDirs: null,               // motor-assisted: direction not critical
+      meters: [],
+      datumOffset: 2.9,             // Portsmouth: MSL ≈ 2.9 m above Chart Datum
+      foildrive: { minHW: 3.8, windowHrs: 1.5, maxWind: 20 },
+      eaGauge: { preferId: "E70124", searchLat: 50.80, searchLon: -1.11, aodToCd: 2.73 }
+    }
+  ]
+};
+/* =============================================================== */
+
+const $ = s => document.querySelector(s);
+const KN = v => v == null ? "–" : Math.round(v);
+const CARDINALS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const cardinal = d => d == null ? "–" : CARDINALS[Math.round(d / 22.5) % 16];
+const fmtT = iso => new Date(iso).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+const inSector = (deg, [a, b]) => a <= b ? deg >= a && deg <= b : deg >= a || deg <= b;
+
+async function fetchJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return r.json(); }
+
+/* --- Live meter feeds (Solentmet-style CSV: header row + data rows) --- */
+async function tryLiveMeter(meter) {
+  for (const url of meter.feeds) {
+    try {
+      const r = await fetch(url, { mode: "cors" });
+      if (!r.ok) continue;
+      const text = await r.text();
+      const rows = text.trim().split(/\r?\n/).map(l => l.split(",").map(c => c.trim()));
+      if (rows.length < 2) continue;
+      const header = rows[0].map(h => h.toUpperCase());
+      const last = rows[rows.length - 1];
+      const col = names => { const i = header.findIndex(h => names.some(n => h.includes(n))); return i >= 0 ? parseFloat(last[i]) : null; };
+      const speedMs = col(["WSPD", "WIND SPEED", "SPEED"]);
+      const dir = col(["WD", "DIRN", "DIRECTION"]);
+      const gustMs = col(["GST", "GUST"]);
+      if (speedMs == null || isNaN(speedMs)) continue;
+      // Solentmet feeds report m/s; if the value looks like it's already knots (>40 in a gale is possible, so use header hint only)
+      const toKn = v => v == null || isNaN(v) ? null : v * 1.94384;
+      return { speed: toKn(speedMs), gust: toKn(gustMs), dir: isNaN(dir) ? null : dir, source: meter.label, site: meter.site, live: true };
+    } catch (e) { /* CORS or network — fall through */ }
+  }
+  return null;
+}
+
+/* --- Open-Meteo wind (always works, CORS-enabled) --- */
+async function fetchModelWind(spot) {
+  const u = `https://api.open-meteo.com/v1/forecast?latitude=${spot.lat}&longitude=${spot.lon}` +
+    `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m` +
+    `&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timezone=Europe%2FLondon&forecast_days=2`;
+  const j = await fetchJSON(u);
+  return {
+    speed: j.current.wind_speed_10m, gust: j.current.wind_gusts_10m, dir: j.current.wind_direction_10m,
+    temp: j.current.temperature_2m, hourly: j.hourly, source: "Open-Meteo model", live: false
+  };
+}
+
+/* --- Open-Meteo marine: swell + modelled tide curve --- */
+async function fetchMarine(spot) {
+  const m = spot.marine;
+  const u = `https://marine-api.open-meteo.com/v1/marine?latitude=${m.lat}&longitude=${m.lon}` +
+    `&hourly=wave_height,wave_period,swell_wave_height,swell_wave_period,sea_level_height_msl` +
+    `&current=wave_height,sea_level_height_msl&timezone=Europe%2FLondon&forecast_days=3`;
+  try { return await fetchJSON(u); } catch (e) { return null; }
+}
+
+/* --- EA live tide gauge (Portsmouth, for Fareham Creek) --- */
+async function fetchEATide(cfg) {
+  const base = "https://environment.data.gov.uk/flood-monitoring";
+  let stations = [];
+  try {
+    const j = await fetchJSON(`${base}/id/stations/${cfg.preferId}`);
+    if (j.items) stations = [j.items];
+  } catch (e) { /* fall back to discovery */ }
+  if (!stations.length) {
+    try {
+      const j = await fetchJSON(`${base}/id/stations?type=TideGauge&lat=${cfg.searchLat}&long=${cfg.searchLon}&dist=25`);
+      stations = j.items || [];
+    } catch (e) { return null; }
+  }
+  for (const st of stations) {
+    const measures = Array.isArray(st.measures) ? st.measures : st.measures ? [st.measures] : [];
+    for (const m of measures) {
+      try {
+        const j = await fetchJSON(`${m["@id"].replace(/^http:/, "https:")}/readings?latest`);
+        const it = (j.items || [])[0];
+        if (!it) continue;
+        const isAOD = /AOD/i.test(m.unitName || "") || /AOD/i.test(m.datumType || "");
+        const valueCD = isAOD ? it.value + cfg.aodToCd : it.value;
+        return { valueCD, when: it.dateTime, station: st.label || st.stationReference };
+      } catch (e) { /* try next measure */ }
+    }
+  }
+  return null;
+}
+
+/* --- Tide analysis on the model curve (hourly, MSL-referenced) --- */
+function tideAnalysis(marine, datumOffset) {
+  if (!marine || !marine.hourly || !marine.hourly.sea_level_height_msl) return null;
+  const t = marine.hourly.time, h = marine.hourly.sea_level_height_msl;
+  const now = Date.now();
+  const pts = t.map((time, i) => ({ time, ms: new Date(time).getTime(), cd: h[i] == null ? null : h[i] + datumOffset }))
+               .filter(p => p.cd != null);
+  if (pts.length < 3) return null;
+  const highs = [], lows = [];
+  for (let i = 1; i < pts.length - 1; i++) {
+    if (pts[i].cd >= pts[i-1].cd && pts[i].cd > pts[i+1].cd) {
+      // quadratic peak refinement around i
+      const y0 = pts[i-1].cd, y1 = pts[i].cd, y2 = pts[i+1].cd;
+      const denom = (y0 - 2*y1 + y2);
+      const frac = denom ? 0.5 * (y0 - y2) / denom : 0;
+      const dt = pts[i+1].ms - pts[i].ms;
+      highs.push({ ms: pts[i].ms + frac * dt, cd: y1 - 0.25 * (y0 - y2) * frac });
+    }
+    if (pts[i].cd <= pts[i-1].cd && pts[i].cd < pts[i+1].cd) lows.push({ ms: pts[i].ms, cd: pts[i].cd });
+  }
+  // interpolate current height
+  let nowCd = null;
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (pts[i].ms <= now && now <= pts[i+1].ms) {
+      const f = (now - pts[i].ms) / (pts[i+1].ms - pts[i].ms);
+      nowCd = pts[i].cd + f * (pts[i+1].cd - pts[i].cd);
+      break;
+    }
+  }
+  const nextHW = highs.find(p => p.ms >= now - 30*60000) || null;
+  const rising = nowCd != null && nextHW && nextHW.ms > now;
+  return { pts, highs, lows, nowCd, nextHW, rising };
+}
+
+function tideSVG(tide) {
+  if (!tide) return "";
+  const now = Date.now(), from = now - 2*3600e3, to = now + 22*3600e3;
+  const pts = tide.pts.filter(p => p.ms >= from && p.ms <= to);
+  if (pts.length < 2) return "";
+  const W = 320, H = 64, min = Math.min(...pts.map(p => p.cd)), max = Math.max(...pts.map(p => p.cd));
+  const X = ms => (ms - from) / (to - from) * W;
+  const Y = cd => H - 6 - (cd - min) / (max - min || 1) * (H - 16);
+  const path = pts.map((p, i) => `${i ? "L" : "M"}${X(p.ms).toFixed(1)},${Y(p.cd).toFixed(1)}`).join(" ");
+  const hwMarks = tide.highs.filter(p => p.ms >= from && p.ms <= to).map(p =>
+    `<circle cx="${X(p.ms).toFixed(1)}" cy="${Y(p.cd).toFixed(1)}" r="3" fill="var(--accent)"/>
+     <text x="${X(p.ms).toFixed(1)}" y="${(Y(p.cd)-6).toFixed(1)}" font-size="9" fill="var(--muted)" text-anchor="middle">${p.cd.toFixed(1)}m</text>`).join("");
+  const nowX = X(now).toFixed(1);
+  return `<svg class="tide" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.85"/>
+    <line x1="${nowX}" y1="4" x2="${nowX}" y2="${H-4}" stroke="var(--muted)" stroke-dasharray="3 3"/>
+    ${hwMarks}</svg>`;
+}
+
+/* --- Scoring --- */
+function scoreWing(spot, wind, tide) {
+  const th = CONFIG.wind, reasons = [];
+  let status = "nogo", score = 0;
+  const s = wind.speed, g = wind.gust, d = wind.dir;
+  if (s == null) return { status: "na", score: 0, reasons: ["No wind data"] };
+  if (s < th.marginal) { reasons.push(`Only ${KN(s)} kn — under your ${th.marginal} kn floor`); }
+  else if (s < th.good) { status = "marginal"; score = 40 + s; reasons.push(`${KN(s)} kn — big-wing marginal`); }
+  else if (s <= th.strong) { status = "go"; score = 70 + s; reasons.push(`${KN(s)} kn — solid wing wind`); }
+  else if (s <= th.tooMuch) { status = "go"; score = 60 + (th.tooMuch - s); reasons.push(`${KN(s)} kn — strong, small wing day`); }
+  else { reasons.push(`${KN(s)} kn — beyond sensible (${th.tooMuch} kn cap)`); }
+  if (g != null && s >= th.marginal && g - s > 12) { reasons.push(`Gusty: ${KN(g)} kn gusts over ${KN(s)} kn mean`); score -= 10; if (status === "go") status = "marginal"; }
+  if (d != null && spot.goodDirs) {
+    if (inSector(d, spot.goodDirs)) reasons.push(`${cardinal(d)} — good angle`);
+    else { reasons.push(`${cardinal(d)} — wrong angle (${spot.offshoreNote || "off/along-shore"})`); score -= 30; if (status === "go") status = "marginal"; }
+  }
+  if (tide && tide.nowCd != null) reasons.push(`Tide ${tide.nowCd.toFixed(1)} m ${tide.rising ? "rising" : "falling"}`);
+  return { status, score: Math.max(0, score), reasons };
+}
+
+function scoreFoildrive(spot, wind, tide, ea) {
+  const fd = spot.foildrive, reasons = [];
+  const nowCd = ea ? ea.valueCD : tide && tide.nowCd;
+  if (ea) reasons.push(`Live gauge (${ea.station}): ${ea.valueCD.toFixed(2)} m @ ${fmtT(ea.when)}`);
+  if (!tide || !tide.highs.length) return { status: "na", score: 0, reasons: [...reasons, "No tide prediction available"], window: null };
+  const now = Date.now();
+  const bigHWs = tide.highs.filter(h => h.cd >= fd.minHW);
+  const active = bigHWs.find(h => Math.abs(h.ms - now) <= fd.windowHrs * 3600e3);
+  const next = bigHWs.find(h => h.ms > now);
+  let status = "nogo", score = 0, window = null;
+  if (active) {
+    status = "go"; score = 100;
+    reasons.push(`HW ${active.cd.toFixed(1)} m at ${fmtT(new Date(active.ms).toISOString())} — inside the ±${fd.windowHrs} h window`);
+    window = { open: true, from: active.ms - fd.windowHrs*3600e3, to: active.ms + fd.windowHrs*3600e3, hw: active };
+  } else if (next) {
+    reasons.push(`Next big-enough HW: ${next.cd.toFixed(1)} m at ${fmtT(new Date(next.ms).toISOString())}`);
+    window = { open: false, from: next.ms - fd.windowHrs*3600e3, to: next.ms + fd.windowHrs*3600e3, hw: next };
+  } else {
+    reasons.push(`No HW ≥ ${fd.minHW} m in the next 3 days — neaps, sit tight`);
+  }
+  if (nowCd != null) reasons.push(`Height now ≈ ${nowCd.toFixed(1)} m (need HW ≥ ${fd.minHW} m)`);
+  if (wind.speed != null && wind.speed > fd.maxWind) { reasons.push(`${KN(wind.speed)} kn — choppy for Foildrive`); if (status === "go") { status = "marginal"; score = 60; } }
+  return { status, score, reasons, window };
+}
+
+/* --- Render --- */
+function windBlock(w) {
+  const arrowRot = w.dir == null ? 0 : (w.dir + 180) % 360; // arrow points where wind goes
+  return `<div class="windrow">
+    <div class="kn">${KN(w.speed)}<small> kn</small><div class="gust">gust ${KN(w.gust)} kn</div></div>
+    <div class="dir"><span class="arrow" style="transform:rotate(${arrowRot}deg)">↑</span>${cardinal(w.dir)} ${w.dir == null ? "" : Math.round(w.dir) + "°"}</div>
+  </div>
+  <div class="src">${w.live ? `<span class="live">● LIVE</span> ${w.source}` : `model: ${w.source}`}</div>`;
+}
+
+function swellLine(marine) {
+  const c = marine && marine.current;
+  if (!c || c.wave_height == null) return `<div class="meta">Swell: n/a (sheltered water)</div>`;
+  return `<div class="meta">Waves <b>${c.wave_height.toFixed(1)} m</b></div>`;
+}
+
+function renderCard(spot, wind, marine, tide, verdict, ea) {
+  const pillCls = verdict.status, pillTxt = { go: "GO", marginal: "MARGINAL", nogo: "NO-GO", na: "NO DATA" }[verdict.status];
+  const links = [
+    ...spot.meters.map(m => `<a href="${m.site}" target="_blank" rel="noopener">${m.label}</a>`),
+    `<a href="https://www.windy.com/${spot.lat}/${spot.lon}?${spot.lat},${spot.lon},11" target="_blank" rel="noopener">Windy forecast</a>`
+  ];
+  let windowHtml = "";
+  if (verdict.window) {
+    const w = verdict.window;
+    windowHtml = `<div class="window ${w.open ? "open" : ""}">🛥️ Foildrive window: <b>${fmtT(new Date(w.from).toISOString())} → ${fmtT(new Date(w.to).toISOString())}</b> (HW ${w.hw.cd.toFixed(1)} m)</div>`;
+  }
+  return `<div class="card" id="card-${spot.id}">
+    <h2>${spot.name} <span class="tag">${spot.activity}</span><span class="pill ${pillCls}">${pillTxt}</span></h2>
+    ${windBlock(wind)}
+    ${swellLine(marine)}
+    ${tideSVG(tide)}
+    ${tide && tide.nextHW ? `<div class="meta">Next HW <b>${tide.nextHW.cd.toFixed(1)} m</b> at <b>${fmtT(new Date(tide.nextHW.ms).toISOString())}</b></div>` : ""}
+    ${windowHtml}
+    <ul class="reasons">${verdict.reasons.map(r => `<li>${r}</li>`).join("")}</ul>
+    ${spot.tideNote ? `<div class="meta">ℹ️ ${spot.tideNote}</div>` : ""}
+    <div class="links">${links.join("")}</div>
+  </div>`;
+}
+
+async function loadSpot(spot) {
+  const [model, marine] = await Promise.all([
+    fetchModelWind(spot).catch(() => ({ speed: null, gust: null, dir: null, source: "unavailable", live: false })),
+    fetchMarine(spot)
+  ]);
+  let wind = model;
+  for (const meter of spot.meters) {
+    const live = await tryLiveMeter(meter);
+    if (live) { wind = { ...model, ...live }; break; }
+  }
+  const tide = tideAnalysis(marine, spot.datumOffset);
+  let ea = null, verdict;
+  if (spot.activity === "foildrive") {
+    ea = await fetchEATide(spot.eaGauge).catch(() => null);
+    verdict = scoreFoildrive(spot, wind, tide, ea);
+  } else {
+    verdict = scoreWing(spot, wind, tide);
+  }
+  return { spot, wind, marine, tide, verdict, ea };
+}
+
+async function loadAll() {
+  const btn = $("#refresh"); btn.disabled = true;
+  $("#updated").textContent = "refreshing…";
+  try {
+    const results = await Promise.all(CONFIG.spots.map(loadSpot));
+    $("#grid").innerHTML = results.map(r => renderCard(r.spot, r.wind, r.marine, r.tide, r.verdict, r.ea)).join("");
+    const ranked = results.filter(r => r.verdict.status === "go").sort((a, b) => b.verdict.score - a.verdict.score);
+    if (ranked.length) {
+      $("#best").innerHTML = `🏆 Best bet right now: <b>${ranked[0].spot.name}</b>` +
+        (ranked.length > 1 ? ` &nbsp;·&nbsp; also on: ${ranked.slice(1).map(r => r.spot.name).join(", ")}` : "");
+    } else {
+      const soon = results.find(r => r.verdict.window && !r.verdict.window.open);
+      $("#best").innerHTML = `😴 Nothing firing right now.` +
+        (soon ? ` Next Foildrive window at Fareham: <b>${fmtT(new Date(soon.verdict.window.from).toISOString())}</b>.` : "");
+    }
+    $("#updated").textContent = "updated " + new Date().toLocaleTimeString("en-GB");
+  } catch (e) {
+    $("#best").innerHTML = `<span class="err">Failed to load: ${e.message}</span>`;
+    $("#updated").textContent = "error";
+  }
+  btn.disabled = false;
+}
+
+loadAll();
+setInterval(loadAll, CONFIG.refreshMinutes * 60000);
+</script>
+</body>
+</html>
