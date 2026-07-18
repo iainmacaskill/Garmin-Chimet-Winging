@@ -1,0 +1,43 @@
+name: Sea breeze watcher
+
+on:
+  schedule:
+    # Every 15 min, 08:00–18:59 UTC, April–September.
+    # (Script applies its own 10:00–19:00 Europe/London + season gate, so
+    # BST offset and shoulder hours are handled there.)
+    - cron: "*/15 8-18 * 4-9 *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Send a test notification to your ntfy topic"
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # Rolling wind history + "already pinged today" flags live in a cache
+      # entry; restore the most recent one, save a fresh one each run.
+      - uses: actions/cache/restore@v4
+        with:
+          path: .seabreeze-state
+          key: seabreeze-${{ github.run_id }}
+          restore-keys: seabreeze-
+
+      - name: Check for sea breeze
+        run: node seabreeze/check.mjs
+        env:
+          NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+          TEST_PING: ${{ inputs.test && 'true' || 'false' }}
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .seabreeze-state
+          key: seabreeze-${{ github.run_id }}

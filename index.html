@@ -63,6 +63,9 @@
   .chip.no{color:var(--muted)}
   .chip .moon{opacity:.8}
   tr.jackpot td.day::before{content:"⭐ "}
+  #sbBanner{margin:10px 0;padding:12px 16px;border-radius:12px;font-weight:700;border:2px solid var(--go);background:color-mix(in srgb,var(--go) 14%,transparent)}
+  #sbBanner.building{border-color:var(--marginal);background:color-mix(in srgb,var(--marginal) 12%,transparent)}
+  #alertsBtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -70,7 +73,9 @@
   <h1>🪁 Solent Wing &amp; Foildrive Conditions</h1>
   <span id="updated">loading…</span>
   <button id="refresh" onclick="loadAll()">Refresh</button>
+  <button id="alertsBtn" onclick="Notification.requestPermission().then(p=>{this.textContent=p==='granted'?'🔔 alerts on':'🔕 alerts blocked'})">🔔 enable alerts</button>
 </header>
+<div id="sbBanner" hidden></div>
 <div id="best">Checking all spots…</div>
 <div class="grid" id="grid"></div>
 <section id="planner"></section>
@@ -450,7 +455,7 @@ async function loadSpot(spot) {
   let wind = model;
   for (const meter of spot.meters) {
     const live = await tryLiveMeter(meter);
-    if (live) { wind = { ...model, ...live }; break; }
+    if (live) { wind = { ...model, ...live, modelSpeed: model.speed }; break; }
   }
   const tide = tideAnalysis(marine, spot.datumOffset);
   let ea = null, verdict;
@@ -463,6 +468,52 @@ async function loadSpot(spot) {
   return { spot, wind, marine, tide, verdict, ea };
 }
 
+/* --- Sea-breeze watcher (in-page version; the GitHub Action in
+       seabreeze/check.mjs does the same job when the page is closed) --- */
+const SB = { onshore: [100, 260], buildingMin: 12, happeningMin: 17, riseKn: 4, modelDeltaKn: 4, historyMins: 120 };
+
+function seaBreezeDetect(obs, history, now, sent) {
+  const onshore = obs.dir != null && inSector(obs.dir, SB.onshore);
+  const past = history.filter(h => now - h.ts >= 30 * 60000 && now - h.ts <= SB.historyMins * 60000);
+  const rising = past.length >= 2 && obs.kn - Math.min(...past.map(h => h.kn)) >= SB.riseKn;
+  const unforecast = obs.modelKn == null || obs.kn >= obs.modelKn + SB.modelDeltaKn;
+  const today = new Date(now).toDateString();
+  if (onshore && unforecast && obs.kn >= SB.happeningMin && (rising || sent.building === today) && sent.happening !== today)
+    return "happening";
+  if (onshore && unforecast && obs.kn >= SB.buildingMin && rising && sent.building !== today && sent.happening !== today)
+    return "building";
+  return "none";
+}
+
+function seaBreezeWatch(results) {
+  const live = results.find(r => r.spot.activity === "wing" && r.wind.live && r.wind.speed != null);
+  if (!live) return;
+  const now = Date.now();
+  const obs = { kn: live.wind.speed, dir: live.wind.dir, modelKn: live.wind.modelSpeed, station: live.wind.source };
+  let history = [], sent = {};
+  try { history = JSON.parse(localStorage.getItem("sbHist") || "[]"); } catch {}
+  try { sent = JSON.parse(localStorage.getItem("sbSent") || "{}"); } catch {}
+  history = history.filter(h => now - h.ts <= SB.historyMins * 60000);
+  const phase = seaBreezeDetect(obs, history, now, sent);
+  const banner = $("#sbBanner");
+  if (phase === "happening") {
+    banner.hidden = false; banner.className = "";
+    banner.textContent = `🚨 IT'S HAPPENING — ${KN(obs.kn)} kn ${cardinal(obs.dir)} at ${obs.station}, sea breeze is in. Go!`;
+    sent.happening = new Date(now).toDateString();
+    if (typeof Notification !== "undefined" && Notification.permission === "granted")
+      new Notification("🚨 IT'S HAPPENING", { body: banner.textContent });
+  } else if (phase === "building") {
+    banner.hidden = false; banner.className = "building";
+    banner.textContent = `🌤️ Sea breeze building — ${KN(obs.kn)} kn ${cardinal(obs.dir)} at ${obs.station} and climbing, not in the forecast.`;
+    sent.building = new Date(now).toDateString();
+    if (typeof Notification !== "undefined" && Notification.permission === "granted")
+      new Notification("🌤️ Sea breeze building", { body: banner.textContent });
+  }
+  history.push({ ts: now, kn: obs.kn, dir: obs.dir });
+  localStorage.setItem("sbHist", JSON.stringify(history));
+  localStorage.setItem("sbSent", JSON.stringify(sent));
+}
+
 async function loadAll() {
   const btn = $("#refresh"); btn.disabled = true;
   $("#updated").textContent = "refreshing…";
@@ -470,6 +521,7 @@ async function loadAll() {
     const results = await Promise.all(CONFIG.spots.map(loadSpot));
     $("#grid").innerHTML = results.map(r => renderCard(r.spot, r.wind, r.marine, r.tide, r.verdict, r.ea)).join("");
     renderPlanner(results);
+    try { seaBreezeWatch(results); } catch (e) { console.warn("sea-breeze watch:", e); }
     const ranked = results.filter(r => r.verdict.status === "go").sort((a, b) => b.verdict.score - a.verdict.score);
     if (ranked.length) {
       $("#best").innerHTML = `🏆 Best bet right now: <b>${ranked[0].spot.name}</b>` +

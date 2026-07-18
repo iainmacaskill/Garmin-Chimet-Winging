@@ -94,7 +94,51 @@ Below the live cards there's a day-by-day table covering the week ahead:
 - **⭐ on the day** — a jackpot day: winnable wing wind *and* a Foildrive-able
   tide on the same day.
 
+## Sea-breeze watcher 🌤️→🚨
+
+The Solent sea breeze — sunny day, light gradient wind, then an unforecast
+18–25 kn southerly fills in after lunch — is detectable before it peaks. The
+watcher looks for the full signature on the **live meters**:
+
+1. **Onshore swing** — direction into the ESE–WSW sector,
+2. **Steady build** — ≥ 4 kn climb over the last 30–120 min of readings,
+3. **Not in the forecast** — observed wind ≥ 4 kn above the model's number
+   for the same hour (that delta is what makes it a sea breeze, not a front),
+4. **Sun on the land** — cloud cover under 70%.
+
+It pings twice, once each per day:
+
+- **🌤️ "Sea breeze building"** — onshore, ≥ 12 kn and climbing. Load the van.
+- **🚨 "IT'S HAPPENING"** — ≥ 17 kn and still building. Go.
+
+### Phone notifications (GitHub Actions + ntfy)
+
+`.github/workflows/seabreeze.yml` runs `seabreeze/check.mjs` every 15 minutes
+(daytime, April–September) on GitHub's servers, so it works with the dashboard
+closed. Setup is three steps, no accounts or API keys:
+
+1. Install the free [ntfy](https://ntfy.sh) app (iOS/Android) and subscribe to
+   a topic with an unguessable name, e.g. `iain-seabreeze-x7k2q`.
+   (Anyone who knows the topic name can see the pings — that's the whole
+   auth model, hence unguessable.)
+2. In this repo: Settings → Secrets and variables → Actions → **Variables** →
+   new variable `NTFY_TOPIC` with that topic name.
+3. Test it: Actions → "Sea breeze watcher" → Run workflow → tick "Send a test
+   notification". A 🧪 test ping should hit your phone in seconds.
+
+The watcher keeps a rolling 2-hour wind history between runs (Actions cache),
+which is how it sees "climbing" rather than a single gusty reading. Without a
+reachable live meter it stays silent — a model can't tell you about wind the
+model didn't forecast. Thresholds live in the `CONFIG` block at the top of
+`seabreeze/check.mjs`.
+
+### In the dashboard too
+
+The same detector runs inside `index.html` while the page is open (it already
+refreshes every 10 minutes): a banner appears at the top, and the
+**🔔 enable alerts** button turns on browser notifications for it.
+
 ## Ideas for later
 
-- Push notification / email when a Fareham window coincides with light wind.
+- Ping when a Fareham Foildrive window coincides with light wind.
 - Store your session log against the conditions that day.
