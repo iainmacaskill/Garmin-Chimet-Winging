@@ -74,6 +74,7 @@
   <span id="updated">loading…</span>
   <button id="refresh" onclick="loadAll()">Refresh</button>
   <button id="alertsBtn" onclick="Notification.requestPermission().then(p=>{this.textContent=p==='granted'?'🔔 alerts on':'🔕 alerts blocked'})">🔔 enable alerts</button>
+  <a href="report.html" style="color:var(--accent);font-size:13px;text-decoration:none;padding:7px 12px;border:1px solid var(--line);border-radius:99px">📊 Performance analysis</a>
 </header>
 <div id="sbBanner" hidden></div>
 <div id="best">Checking all spots…</div>

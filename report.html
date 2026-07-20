@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wing Foil Performance Analysis — Solent Spot Guide</title>
+<style>
+  :root{
+    --bg:#0d1420; --panel:#151f30; --panel2:#1b2942; --ink:#e8eef7; --muted:#8fa1ba;
+    --go:#2fbf71; --marginal:#e8b93c; --nogo:#e05c5c; --accent:#4da3ff; --line:#26385a;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f2f5f9; --panel:#ffffff; --panel2:#eef3fa; --ink:#17222f; --muted:#5c6b7f; --line:#d7e0ec; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.6 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 60px}
+  header{margin-bottom:8px}
+  .kicker{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:28px;margin:6px 0 4px;line-height:1.2}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:18px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px}
+  .toolbar a{color:var(--accent);text-decoration:none;font-size:13px;padding:7px 12px;border:1px solid var(--line);border-radius:99px}
+  .toolbar a:hover{background:var(--panel2)}
+  h2{font-size:20px;margin:38px 0 12px;padding-top:6px;border-top:1px solid var(--line)}
+  h2:first-of-type{border-top:0}
+  p{margin:0 0 14px}
+  .callout{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:16px 0;font-size:14px}
+  .callout b{color:var(--accent)}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin:14px 0}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .spot-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  .spot-card h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .spot-card .sector{margin-left:auto;font-size:12px;font-weight:700;color:var(--go);background:color-mix(in srgb,var(--go) 16%,transparent);border:1px solid var(--go);border-radius:99px;padding:2px 10px}
+  .spot-card .why{color:var(--muted);font-size:13.5px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .compass{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0}
+  .compass .cell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13.5px}
+  .compass .cell b{display:block;font-size:13px;color:var(--accent);margin-bottom:2px}
+  .metric{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+  footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;line-height:1.8}
+  footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">Wing Foil Performance Analysis</div>
+  <h1>Which Solent spot, and why</h1>
+  <div class="sub">A methodology for picking between Meon / Hill Head, Emsworth, Hayling Island, West Wittering and Hurst Castle / Milford, built from live wind, tide and swell data.</div>
+</header>
+
+<div class="toolbar">
+  <a href="index.html">🪁 Open the live conditions dashboard →</a>
+  <a href="https://github.com/iainmacaskill/JIRA-Tickets-with-ChatGPT">View source on GitHub</a>
+</div>
+
+<h2>The short version</h2>
+<p>
+  With five wing spots along a 20‑mile stretch of coast, the wind speed alone rarely picks a winner — on
+  most SW–S days two or three of them are all "on." The variable that actually discriminates is
+  <b>wind direction relative to each spot's coastline</b>, with tide as a secondary factor at the two
+  spots that dry out over sandbanks (Hayling and West Wittering).
+</p>
+<div class="callout">
+  <b>Rule of thumb:</b> pick the spot whose coastline the wind is blowing <i>across</i>, not <i>off</i> or
+  straight <i>into</i> a headland. A 15 kn wind can be the best session of the month at one spot and
+  unrideable eight miles away, for no reason other than the angle it arrives at.
+</div>
+
+<h2>Spot-by-spot geography</h2>
+
+<div class="spot-card">
+  <h3>Meon / Hill Head <span class="tag">wing</span><span class="sector">E – S – WSW</span></h3>
+  <p class="why">Faces roughly south across the Solent with open fetch to the Isle of Wight. Cross-shore
+  from the east through south to WSW; the wind stays clean because there's deep water close to the
+  launch. <b>N–NE is offshore</b> here and should be treated as a no‑go regardless of speed. Most
+  tide-tolerant of the five spots — rideable across most of the tidal range.</p>
+</div>
+
+<div class="spot-card">
+  <h3>Emsworth <span class="tag">wing</span><span class="sector">SE – SW</span></h3>
+  <p class="why">Tucked into the top of Chichester Harbour, so it needs more south in the wind to stay
+  onshore, and shallows out hard away from high water. Best sailed within a couple of hours of HW;
+  northerlies are offshore and gusty off the town moorings.</p>
+</div>
+
+<div class="spot-card">
+  <h3>Hayling Island <span class="tag">wing</span><span class="sector">ESE – W</span></h3>
+  <p class="why">Open seafront with a wide sector — takes anything from ESE around to W cleanly. Big tidal
+  range over sand; needs mid‑to‑high tide for clean water, since low tide exposes banks well out from the
+  beach. North is offshore.</p>
+</div>
+
+<div class="spot-card">
+  <h3>West Wittering <span class="tag">wing</span><span class="sector">SE – W</span></h3>
+  <p class="why">The widest good sector of the group — holds cross-shore wind further round towards WNW
+  than any other spot, which is why it's usually the pick on a westerly-veering day. Same sandbank
+  tide-dependency as Hayling; NE is offshore.</p>
+</div>
+
+<div class="spot-card">
+  <h3>Hurst Castle / Milford <span class="tag">wing</span><span class="sector">S – W</span></h3>
+  <p class="why">Sits right at the Needles Channel, which funnels a southwesterly and often makes this the
+  <i>first</i> spot to go off and the <i>strongest</i> on a SW day, even when the central Solent spots are
+  still marginal. Trade-off: a strong ebb running against a SW'ly kicks up serious short-period chop
+  through the Narrows. N–NE is offshore over the spit.</p>
+</div>
+
+<h2>Decision guide by wind direction</h2>
+<p>This is the logic the live dashboard applies automatically — read as "if the wind is coming from
+roughly here, these spots are on."</p>
+<div class="compass">
+  <div class="cell"><b>N – NE</b>Offshore at every spot. No‑go regardless of speed; if you're set on riding, look for Meon in a sheltered pocket only in light airs.</div>
+  <div class="cell"><b>E – ESE</b>Meon's angle — clean cross-shore. Hayling and Wittering start to work as it backs further south.</div>
+  <div class="cell"><b>SE</b>Hayling, Wittering and Emsworth all switch on. Meon still good.</div>
+  <div class="cell"><b>S</b>Dead onshore at Hayling and Wittering — straightforward but can be choppy close in. Meon and Emsworth solid.</div>
+  <div class="cell"><b>SSW – SW</b>Everywhere works. <b>Hurst Castle</b> is usually strongest here due to the Needles Channel funnel; Wittering is a close, cleaner second.</div>
+  <div class="cell"><b>WSW – W</b>Wittering holds the longest of the group (good sector runs to 280°). Meon and Hayling start going side-off and gustier.</div>
+  <div class="cell"><b>WNW – NW</b>Marginal everywhere; only Wittering is still plausibly on, and only right at the top of its sector.</div>
+</div>
+
+<h2>Tide as the second filter</h2>
+<table>
+  <tr><th>Spot</th><th>Tide sensitivity</th><th>Best window</th></tr>
+  <tr><td>Meon / Hill Head</td><td>Low</td><td>Most of the tidal range</td></tr>
+  <tr><td>Emsworth</td><td>High — shallow harbour top</td><td>±2 h of HW</td></tr>
+  <tr><td>Hayling Island</td><td>High — dries over sand</td><td>Mid to high tide</td></tr>
+  <tr><td>West Wittering</td><td>High — dries over sand</td><td>Mid to high tide</td></tr>
+  <tr><td>Hurst Castle / Milford</td><td>Moderate — tidal stream, not depth</td><td>Slack to moderate stream; avoid max ebb against a strong SW'ly</td></tr>
+</table>
+
+<h2>Scoring thresholds</h2>
+<p>The live dashboard turns the rules above into a GO / MARGINAL / NO‑GO call per spot, using:</p>
+<table>
+  <tr><th>Band</th><th>Wind speed</th><th>Verdict</th></tr>
+  <tr><td>Too light</td><td>&lt; <span class="metric">12 kn</span></td><td>No‑go</td></tr>
+  <tr><td>Marginal</td><td><span class="metric">12–15 kn</span></td><td>Marginal (big wing)</td></tr>
+  <tr><td>Good</td><td><span class="metric">15–28 kn</span></td><td>Go</td></tr>
+  <tr><td>Strong</td><td><span class="metric">28–35 kn</span></td><td>Go (small wing)</td></tr>
+  <tr><td>Too much</td><td>&gt; <span class="metric">35 kn</span></td><td>No‑go</td></tr>
+</table>
+<p>A gust spread over 12 kn above the mean, or a direction outside the spot's good sector, downgrades a
+Go to Marginal. These thresholds and the direction sectors above are config values in the dashboard, not
+hard-coded — they get tuned as real sessions confirm or contradict them.</p>
+
+<div class="callout">
+  <b>Worked example — Wittering vs Hayling vs Meon.</b> On a typical SW day, all three read broadly
+  similar wind speed. West Wittering usually wins on angle alone: SW arrives closer to side-on with the
+  longest open fetch of the three. Hayling is a close second on the same wind. Meon takes the win instead
+  when the wind sits further round in the SE–E quadrant, where it's clean cross-shore and Wittering/Hayling
+  are more end-on. Tide breaks remaining ties at Wittering and Hayling — favour the one closer to mid/high
+  water when speed and angle are otherwise level.
+</div>
+
+<footer>
+  Live conditions, the 7‑day planner, and the sea‑breeze early-warning notifications for these spots are on
+  the <a href="index.html">dashboard</a>. Data sources: the
+  <a href="https://www.bramblemet.co.uk">Solentmet</a> live meter network, WeatherFile stations at Hurst
+  Castle and Lymington, <a href="https://open-meteo.com">Open‑Meteo</a> for model wind, swell and tide
+  curves, and the <a href="https://environment.data.gov.uk/flood-monitoring/doc/tidegauge">Environment
+  Agency Tide Gauge API</a> for live observed tide at Portsmouth.
+  <br><br>
+  Part of the <a href="https://github.com/iainmacaskill/JIRA-Tickets-with-ChatGPT">Solent Wing &amp;
+  Foildrive Conditions</a> project.
+</footer>
+</div>
+</body>
+</html>
