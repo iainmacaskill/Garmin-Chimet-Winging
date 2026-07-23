@@ -156,6 +156,34 @@ const CONFIG = {
       tideNote: "Strong ebb through the Narrows against a SW'ly kicks up serious chop"
     },
     {
+      id: "calshot", name: "Calshot Spit", activity: "wing",
+      lat: 50.811, lon: -1.310, marine: { lat: 50.796, lon: -1.300 },
+      goodDirs: [180, 280],          // S through W is the reliable onshore/cross-onshore band here
+      offshoreNote: "N–NE is offshore off Southampton Water",
+      meters: [
+        { label: "Calshot Activities Centre (WeatherFile)", site: "https://weatherfile.com/location?loc_id=GBR00065",
+          feeds: [{ url: "https://weatherfile.com/V03/loc/GBR00065/latest", unit: "kn" }] },
+        { label: "Sotonmet (Southampton Bar)", site: "https://www.sotonmet.co.uk",
+          feeds: ["https://www.sotonmet.co.uk/sotonmet.txt", "https://www.sotonmet.co.uk/data.txt"] }
+      ],
+      datumOffset: 2.75,             // Southampton MSL ≈ 2.75 m above Chart Datum (approximate)
+      tideNote: "Flat water tucked behind the shingle spit at low-mid tide; open Solent swell rolls in at high water"
+    },
+    {
+      id: "lepe", name: "Lepe", activity: "wing",
+      lat: 50.789, lon: -1.364, marine: { lat: 50.774, lon: -1.360 },
+      goodDirs: [150, 280],          // open north-shore frontage — SE through W
+      offshoreNote: "N–NE is offshore",
+      meters: [
+        { label: "Hurst Castle (WeatherFile) — ~6mi W, nearest live station", site: "https://weatherfile.com/location?loc_id=GBR00002",
+          feeds: [{ url: "https://weatherfile.com/V03/loc/GBR00002/latest", unit: "kn" }] },
+        { label: "Calshot Activities Centre (WeatherFile) — ~5mi E, nearest live station", site: "https://weatherfile.com/location?loc_id=GBR00065",
+          feeds: [{ url: "https://weatherfile.com/V03/loc/GBR00065/latest", unit: "kn" }] }
+      ],
+      datumOffset: 2.75,
+      tideNote: "No confirmed live meter at Lepe itself — bracketed with Hurst Castle and Calshot. NCI Stone Point (Lepe Country Park) runs an anemometer but has no public data URL we could confirm."
+    },
+    {
       id: "fareham", name: "Fareham Creek", activity: "foildrive",
       lat: 50.845, lon: -1.166, marine: { lat: 50.79, lon: -1.11 },
       goodDirs: null,               // motor-assisted: direction not critical

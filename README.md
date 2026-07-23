@@ -1,6 +1,6 @@
 # Solent Wing & Foildrive Conditions
 
-A single-page dashboard that pulls live wind, tide and swell data for five local
+A single-page dashboard that pulls live wind, tide and swell data for seven local
 spots and tells you where (and when) to ride:
 
 | Spot | Activity | What makes it "GO" |
@@ -10,6 +10,8 @@ spots and tells you where (and when) to ride:
 | Hayling Island | Wing | ≥ 15 kn from ESE–W |
 | West Wittering | Wing | ≥ 15 kn from SE–W |
 | Hurst Castle / Milford | Wing | ≥ 15 kn from S–W (the SW funnels through the Needles Channel) |
+| Calshot Spit | Wing | ≥ 15 kn from S–W; flat behind the spit low-mid tide, open swell at HW |
+| Lepe | Wing | ≥ 15 kn from SE–W |
 | **Fareham Creek** | **Foildrive** | **High water ≥ 3.8 m (Chart Datum), within ±1.5 h of HW** |
 
 Everything below 12 kn is a no-go for the wing, 12–15 kn is flagged marginal
@@ -47,6 +49,20 @@ the meter reader handles both formats):
 
 - [Hurst Castle](https://weatherfile.com/location?loc_id=GBR00002) — on the castle itself
 - [Lymington Starting Platform](https://weatherfile.com/location?loc_id=GBR00001)
+- [Calshot Activities Centre](https://weatherfile.com/location?loc_id=GBR00065) — right at Calshot Spit
+
+Sotonmet (Southampton Bar/Dockhead) is wired in as a fallback for Calshot — it's
+the same Solentmet-family network as Bramblemet/Chimet/Cambermet/Emsmet, run by
+ABP Southampton a few miles up the water.
+
+**Lepe has no confirmed live meter.** NCI Stone Point, in Lepe Country Park,
+runs a Davis Weatherlink anemometer, but Weatherlink station pages use an
+opaque per-station ID we couldn't locate publicly — so rather than guess a
+URL, Lepe's card is bracketed with the two nearest confirmed live stations
+(Hurst Castle to the west, Calshot to the east) and falls back to model wind
+like any other spot when neither is close enough to be representative. If you
+find Stone Point's public Weatherlink page, its ID slots straight into the
+`meters` array for the `lepe` spot in `CONFIG`.
 
 The app attempts to read each station's text data feed directly from your
 browser. If a station blocks cross-origin requests (or a feed path changes),

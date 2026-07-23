@@ -48,7 +48,7 @@
 <header>
   <div class="kicker">Wing Foil Performance Analysis</div>
   <h1>Which Solent spot, and why</h1>
-  <div class="sub">A methodology for picking between Meon / Hill Head, Emsworth, Hayling Island, West Wittering and Hurst Castle / Milford, built from live wind, tide and swell data.</div>
+  <div class="sub">A methodology for picking between Meon / Hill Head, Emsworth, Hayling Island, West Wittering, Hurst Castle / Milford, Calshot Spit and Lepe, built from live wind, tide and swell data.</div>
 </header>
 
 <div class="toolbar">
@@ -75,8 +75,8 @@
   <h3>Meon / Hill Head <span class="tag">wing</span><span class="sector">E – S – WSW</span></h3>
   <p class="why">Faces roughly south across the Solent with open fetch to the Isle of Wight. Cross-shore
   from the east through south to WSW; the wind stays clean because there's deep water close to the
-  launch. <b>N–NE is offshore</b> here and should be treated as a no‑go regardless of speed. Most
-  tide-tolerant of the five spots — rideable across most of the tidal range.</p>
+  launch. <b>N–NE is offshore</b> here and should be treated as a no‑go regardless of speed. One of the
+  most tide-tolerant spots in the group — rideable across most of the tidal range.</p>
 </div>
 
 <div class="spot-card">
@@ -108,16 +108,32 @@
   through the Narrows. N–NE is offshore over the spit.</p>
 </div>
 
+<div class="spot-card">
+  <h3>Calshot Spit <span class="tag">wing</span><span class="sector">S – W</span></h3>
+  <p class="why">Sits right at the mouth of Southampton Water, where the shingle spit gives two very
+  different sessions on the same wind: sheltered, flat water tucked behind the bar at low‑to‑mid tide,
+  opening out to full Solent swell as the tide comes up. Best on S–W; N–NE is offshore across the water
+  towards Southampton.</p>
+</div>
+
+<div class="spot-card">
+  <h3>Lepe <span class="tag">wing</span><span class="sector">SE – W</span></h3>
+  <p class="why">Open north-shore frontage on the western Solent between Calshot and Hurst, looking across
+  to Cowes and the Beaulieu River entrance. No live meter sits at Lepe itself — the dashboard reads the
+  nearest confirmed live stations at Hurst Castle and Calshot as a bracket, since a SW'ly reliably fills
+  in across this whole stretch of coast together. N–NE is offshore.</p>
+</div>
+
 <h2>Decision guide by wind direction</h2>
 <p>This is the logic the live dashboard applies automatically — read as "if the wind is coming from
 roughly here, these spots are on."</p>
 <div class="compass">
   <div class="cell"><b>N – NE</b>Offshore at every spot. No‑go regardless of speed; if you're set on riding, look for Meon in a sheltered pocket only in light airs.</div>
   <div class="cell"><b>E – ESE</b>Meon's angle — clean cross-shore. Hayling and Wittering start to work as it backs further south.</div>
-  <div class="cell"><b>SE</b>Hayling, Wittering and Emsworth all switch on. Meon still good.</div>
-  <div class="cell"><b>S</b>Dead onshore at Hayling and Wittering — straightforward but can be choppy close in. Meon and Emsworth solid.</div>
-  <div class="cell"><b>SSW – SW</b>Everywhere works. <b>Hurst Castle</b> is usually strongest here due to the Needles Channel funnel; Wittering is a close, cleaner second.</div>
-  <div class="cell"><b>WSW – W</b>Wittering holds the longest of the group (good sector runs to 280°). Meon and Hayling start going side-off and gustier.</div>
+  <div class="cell"><b>SE</b>Hayling, Wittering, Lepe and Emsworth all switch on. Meon still good.</div>
+  <div class="cell"><b>S</b>Dead onshore at Hayling and Wittering — straightforward but can be choppy close in. Meon, Emsworth, Calshot and Lepe all solid.</div>
+  <div class="cell"><b>SSW – SW</b>Everywhere works. <b>Hurst Castle</b> is usually strongest here due to the Needles Channel funnel; Calshot and Wittering are close, cleaner options.</div>
+  <div class="cell"><b>WSW – W</b>Wittering holds the longest of the group (good sector runs to 280°); Calshot, Hurst and Lepe still on. Meon and Hayling start going side-off and gustier.</div>
   <div class="cell"><b>WNW – NW</b>Marginal everywhere; only Wittering is still plausibly on, and only right at the top of its sector.</div>
 </div>
 
@@ -129,6 +145,8 @@ roughly here, these spots are on."</p>
   <tr><td>Hayling Island</td><td>High — dries over sand</td><td>Mid to high tide</td></tr>
   <tr><td>West Wittering</td><td>High — dries over sand</td><td>Mid to high tide</td></tr>
   <tr><td>Hurst Castle / Milford</td><td>Moderate — tidal stream, not depth</td><td>Slack to moderate stream; avoid max ebb against a strong SW'ly</td></tr>
+  <tr><td>Calshot Spit</td><td>High — character changes with the tide</td><td>Low-mid for flat water; high for open swell</td></tr>
+  <tr><td>Lepe</td><td>Low-moderate</td><td>Most of the tidal range</td></tr>
 </table>
 
 <h2>Scoring thresholds</h2>
@@ -158,7 +176,7 @@ hard-coded — they get tuned as real sessions confirm or contradict them.</p>
   Live conditions, the 7‑day planner, and the sea‑breeze early-warning notifications for these spots are on
   the <a href="index.html">dashboard</a>. Data sources: the
   <a href="https://www.bramblemet.co.uk">Solentmet</a> live meter network, WeatherFile stations at Hurst
-  Castle and Lymington, <a href="https://open-meteo.com">Open‑Meteo</a> for model wind, swell and tide
+  Castle, Lymington and Calshot, <a href="https://open-meteo.com">Open‑Meteo</a> for model wind, swell and tide
   curves, and the <a href="https://environment.data.gov.uk/flood-monitoring/doc/tidegauge">Environment
   Agency Tide Gauge API</a> for live observed tide at Portsmouth.
   <br><br>
